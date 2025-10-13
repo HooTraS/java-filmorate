@@ -6,12 +6,13 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final Map<Integer, Set<Integer>> friends = new HashMap<>();
 
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
@@ -39,33 +40,36 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        getById(userId);
-        getById(friendId);
-        friends.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
-        friends.computeIfAbsent(friendId, k -> new HashSet<>()).add(userId);
+        User user = getById(userId);
+        User friend = getById(friendId);
+        user.getFriends().add(friendId);
+        friend.getFriends().add(userId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        getById(userId);
-        getById(friendId);
-        Optional.ofNullable(friends.get(userId)).ifPresent(s -> s.remove(friendId));
-        Optional.ofNullable(friends.get(friendId)).ifPresent(s -> s.remove(userId));
+        User user = getById(userId);
+        User friend = getById(friendId);
+        user.getFriends().remove(friendId);
+        friend.getFriends().remove(userId);
     }
 
     public Collection<User> getFriends(int userId) {
-        getById(userId);
-        return friends.getOrDefault(userId, Set.of()).stream()
+        User user = getById(userId);
+        return user.getFriends().stream()
                 .map(this::getById)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public Collection<User> getCommonFriends(int userId, int otherId) {
-        getById(userId);
-        getById(otherId);
-        Set<Integer> set1 = new HashSet<>(friends.getOrDefault(userId, Set.of()));
-        Set<Integer> set2 = new HashSet<>(friends.getOrDefault(otherId, Set.of()));
-        set1.retainAll(set2);
-        return set1.stream().map(this::getById).toList();
+        User user = getById(userId);
+        User other = getById(otherId);
+
+        Set<Integer> commonIds = new HashSet<>(user.getFriends());
+        commonIds.retainAll(other.getFriends());
+
+        return commonIds.stream()
+                .map(this::getById)
+                .collect(Collectors.toList());
     }
 
     private void validate(User user) {
@@ -78,7 +82,7 @@ public class UserService {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(java.time.LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
