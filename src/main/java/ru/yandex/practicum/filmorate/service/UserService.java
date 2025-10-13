@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -24,9 +24,8 @@ public class UserService {
 
     public User update(User user) {
         validate(user);
-        if (userStorage.getById(user.getId()).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + user.getId() + " не найден");
-        }
+        userStorage.getById(user.getId())
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + user.getId() + " не найден"));
         return userStorage.update(user);
     }
 
@@ -36,51 +35,33 @@ public class UserService {
 
     public User getById(int id) {
         return userStorage.getById(id)
-                .orElseThrow(() -> new ValidationException("Пользователь с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
     }
 
     public void addFriend(int userId, int friendId) {
-        if (userStorage.getById(userId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + userId + " не найден");
-        }
-        if (userStorage.getById(friendId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + friendId + " не найден");
-        }
-
+        getById(userId);
+        getById(friendId);
         friends.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
         friends.computeIfAbsent(friendId, k -> new HashSet<>()).add(userId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        if (userStorage.getById(userId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + userId + " не найден");
-        }
-        if (userStorage.getById(friendId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + friendId + " не найден");
-        }
-
+        getById(userId);
+        getById(friendId);
         Optional.ofNullable(friends.get(userId)).ifPresent(s -> s.remove(friendId));
         Optional.ofNullable(friends.get(friendId)).ifPresent(s -> s.remove(userId));
     }
 
     public Collection<User> getFriends(int userId) {
-        if (userStorage.getById(userId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + userId + " не найден");
-        }
-
+        getById(userId);
         return friends.getOrDefault(userId, Set.of()).stream()
                 .map(this::getById)
                 .toList();
     }
 
     public Collection<User> getCommonFriends(int userId, int otherId) {
-        if (userStorage.getById(userId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + userId + " не найден");
-        }
-        if (userStorage.getById(otherId).isEmpty()) {
-            throw new ValidationException("Пользователь с id=" + otherId + " не найден");
-        }
-
+        getById(userId);
+        getById(otherId);
         Set<Integer> set1 = new HashSet<>(friends.getOrDefault(userId, Set.of()));
         Set<Integer> set2 = new HashSet<>(friends.getOrDefault(otherId, Set.of()));
         set1.retainAll(set2);
@@ -97,7 +78,7 @@ public class UserService {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(java.time.LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }

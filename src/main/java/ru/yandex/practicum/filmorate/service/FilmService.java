@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
@@ -29,7 +30,7 @@ public class FilmService {
     public Film update(Film film) {
         validate(film);
         filmStorage.getById(film.getId())
-                .orElseThrow(() -> new ValidationException("Фильм с id=" + film.getId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден"));
         return filmStorage.update(film);
     }
 
@@ -39,23 +40,22 @@ public class FilmService {
 
     public Film getById(int id) {
         return filmStorage.getById(id)
-                .orElseThrow(() -> new ValidationException("Фильм с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 
     public void addLike(int filmId, int userId) {
         // Проверяем, что фильм и пользователь существуют
         getById(filmId);
         userStorage.getById(userId)
-                .orElseThrow(() -> new ValidationException("Пользователь с id=" + userId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
         likes.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
     }
 
     public void removeLike(int filmId, int userId) {
-        // Проверяем, что фильм и пользователь существуют
         getById(filmId);
         userStorage.getById(userId)
-                .orElseThrow(() -> new ValidationException("Пользователь с id=" + userId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
         // Удаляем лайк, если он есть
         likes.computeIfPresent(filmId, (k, v) -> {

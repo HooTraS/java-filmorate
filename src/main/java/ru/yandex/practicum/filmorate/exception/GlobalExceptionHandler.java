@@ -21,4 +21,10 @@ public class GlobalExceptionHandler {
     public Map<String, String> handleOther(Throwable e) {
         return Map.of("error", "Произошла непредвиденная ошибка");
     }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleNotFound(final NotFoundException e) {
+        return Map.of("error", e.getMessage());
+    }
 }
