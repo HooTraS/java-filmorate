@@ -5,14 +5,13 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final java.util.Map<Integer, Set<Integer>> friends = new java.util.HashMap<>();
+    private final Map<Integer, Set<Integer>> friends = new HashMap<>();
 
     public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
@@ -25,8 +24,9 @@ public class UserService {
 
     public User update(User user) {
         validate(user);
-        userStorage.getById(user.getId())
-                .orElseThrow(() -> new ValidationException("Пользователь с id=" + user.getId() + " не найден"));
+        if (userStorage.getById(user.getId()).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + user.getId() + " не найден");
+        }
         return userStorage.update(user);
     }
 
@@ -40,33 +40,46 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        // проверяем существование обоих
-        getById(userId);
-        getById(friendId);
+        if (userStorage.getById(userId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + userId + " не найден");
+        }
+        if (userStorage.getById(friendId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + friendId + " не найден");
+        }
 
         friends.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
         friends.computeIfAbsent(friendId, k -> new HashSet<>()).add(userId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        // проверяем существование обоих (чтобы тесты на несуществующие id получили 400)
-        getById(userId);
-        getById(friendId);
+        if (userStorage.getById(userId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + userId + " не найден");
+        }
+        if (userStorage.getById(friendId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + friendId + " не найден");
+        }
 
-        java.util.Optional.ofNullable(friends.get(userId)).ifPresent(s -> s.remove(friendId));
-        java.util.Optional.ofNullable(friends.get(friendId)).ifPresent(s -> s.remove(userId));
+        Optional.ofNullable(friends.get(userId)).ifPresent(s -> s.remove(friendId));
+        Optional.ofNullable(friends.get(friendId)).ifPresent(s -> s.remove(userId));
     }
 
     public Collection<User> getFriends(int userId) {
-        getById(userId); // если не существует — ValidationException
+        if (userStorage.getById(userId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + userId + " не найден");
+        }
+
         return friends.getOrDefault(userId, Set.of()).stream()
                 .map(this::getById)
                 .toList();
     }
 
     public Collection<User> getCommonFriends(int userId, int otherId) {
-        getById(userId);
-        getById(otherId);
+        if (userStorage.getById(userId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + userId + " не найден");
+        }
+        if (userStorage.getById(otherId).isEmpty()) {
+            throw new ValidationException("Пользователь с id=" + otherId + " не найден");
+        }
 
         Set<Integer> set1 = new HashSet<>(friends.getOrDefault(userId, Set.of()));
         Set<Integer> set2 = new HashSet<>(friends.getOrDefault(otherId, Set.of()));
@@ -84,7 +97,7 @@ public class UserService {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(java.time.LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
