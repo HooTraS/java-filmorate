@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -42,8 +43,12 @@ public class UserService {
     public void addFriend(int userId, int friendId) {
         User user = getById(userId);
         User friend = getById(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
+        if (friend.getFriends().containsKey(userId)
+                && friend.getFriends().get(userId) == FriendshipStatus.UNCONFIRMED) {
+            user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
+            friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
+        }
     }
 
     public void removeFriend(int userId, int friendId) {
@@ -55,8 +60,9 @@ public class UserService {
 
     public Collection<User> getFriends(int userId) {
         User user = getById(userId);
-        return user.getFriends().stream()
-                .map(this::getById)
+        return user.getFriends().entrySet().stream()
+                .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
+                .map(entry -> getById(entry.getKey()))
                 .collect(Collectors.toList());
     }
 
@@ -64,10 +70,19 @@ public class UserService {
         User user = getById(userId);
         User other = getById(otherId);
 
-        Set<Integer> commonIds = new HashSet<>(user.getFriends());
-        commonIds.retainAll(other.getFriends());
+        Set<Integer> userFriends = user.getFriends().entrySet().stream()
+                .filter(e -> e.getValue() == FriendshipStatus.CONFIRMED)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
 
-        return commonIds.stream()
+        Set<Integer> otherFriends = other.getFriends().entrySet().stream()
+                .filter(e -> e.getValue() == FriendshipStatus.CONFIRMED)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+
+        userFriends.retainAll(otherFriends);
+
+        return userFriends.stream()
                 .map(this::getById)
                 .collect(Collectors.toList());
     }
