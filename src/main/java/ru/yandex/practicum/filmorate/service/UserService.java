@@ -41,13 +41,20 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
+        if (userId == friendId) {
+            throw new ValidationException("Нельзя добавить себя в друзья");
+        }
+
         User user = getById(userId);
         User friend = getById(friendId);
+
         user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
-        if (friend.getFriends().containsKey(userId)
-                && friend.getFriends().get(userId) == FriendshipStatus.UNCONFIRMED) {
+
+        if (friend.getFriends().containsKey(userId)) {
             user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
             friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
+        } else {
+            friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
         }
     }
 
@@ -60,9 +67,8 @@ public class UserService {
 
     public Collection<User> getFriends(int userId) {
         User user = getById(userId);
-        return user.getFriends().entrySet().stream()
-                .filter(entry -> entry.getValue() == FriendshipStatus.CONFIRMED)
-                .map(entry -> getById(entry.getKey()))
+        return user.getFriends().keySet().stream()
+                .map(this::getById)
                 .collect(Collectors.toList());
     }
 

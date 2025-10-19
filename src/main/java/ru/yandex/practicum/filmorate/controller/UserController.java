@@ -44,7 +44,7 @@ public class UserController {
     public User addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("PUT /users/{}/friends/{}", id, friendId);
         userService.addFriend(id, friendId);
-        return userService.getById(id);
+        return userService.getById(id); // вернуть актуального user'а с обновлённым списком друзей
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
