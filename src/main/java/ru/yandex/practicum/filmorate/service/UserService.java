@@ -76,15 +76,13 @@ public class UserService {
         User user = getById(userId);
         User other = getById(otherId);
 
-        Set<Integer> userFriends = user.getFriends().entrySet().stream()
-                .filter(e -> e.getValue() == FriendshipStatus.CONFIRMED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+        Set<Integer> userFriends = user.getFriends() == null
+                ? Collections.emptySet()
+                : new HashSet<>(user.getFriends().keySet());
 
-        Set<Integer> otherFriends = other.getFriends().entrySet().stream()
-                .filter(e -> e.getValue() == FriendshipStatus.CONFIRMED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+        Set<Integer> otherFriends = other.getFriends() == null
+                ? Collections.emptySet()
+                : new HashSet<>(other.getFriends().keySet());
 
         userFriends.retainAll(otherFriends);
 
