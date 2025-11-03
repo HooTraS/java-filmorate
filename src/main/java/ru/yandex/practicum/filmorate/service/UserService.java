@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
@@ -56,6 +57,8 @@ public class UserService {
         } else {
             friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
         }
+
+        // ⚠️ В будущем можно добавить сохранение связей в отдельную таблицу friends
     }
 
     public void removeFriend(int userId, int friendId) {
