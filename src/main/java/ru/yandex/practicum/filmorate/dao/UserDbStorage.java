@@ -40,7 +40,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User user) {
-        String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
+        String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
         jdbcTemplate.update(sql, user.getEmail(), user.getLogin(), user.getName(),
                 java.sql.Date.valueOf(user.getBirthday()), user.getId());
         return user;
@@ -48,7 +48,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Optional<User> getById(int id) {
-        String sql = "SELECT * FROM users WHERE id = ?";
+        String sql = "SELECT * FROM users WHERE user_id = ?";
         return jdbcTemplate.query(sql, userRowMapper, id)
                 .stream()
                 .findFirst();
