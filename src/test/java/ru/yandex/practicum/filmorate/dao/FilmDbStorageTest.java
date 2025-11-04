@@ -53,13 +53,13 @@ class FilmDbStorageTest {
         film.setDescription("Old Desc");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(100);
-        film.setMpa(MpaRating.G); // ✅ тоже нужен рейтинг
+        film.setMpa(MpaRating.G);
 
         Film savedFilm = filmStorage.add(film);
 
         savedFilm.setName("Updated Film");
         savedFilm.setDescription("Updated Desc");
-        savedFilm.setMpa(MpaRating.R); // можно обновить рейтинг
+        savedFilm.setMpa(MpaRating.R);
 
         filmStorage.update(savedFilm);
 

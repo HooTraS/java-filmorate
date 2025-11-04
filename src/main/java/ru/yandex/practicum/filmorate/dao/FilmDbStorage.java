@@ -30,7 +30,7 @@ public class FilmDbStorage implements FilmStorage {
             ps.setString(2, film.getDescription());
             ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
             ps.setInt(4, film.getDuration());
-            ps.setString(5, film.getMpa().name()); // mpa сохраняется как текст, не id
+            ps.setString(5, film.getMpa().name());
             return ps;
         }, keyHolder);
         if (keyHolder.getKey() != null) {
@@ -41,7 +41,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa = ? WHERE id = ?";
+        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa = ? WHERE film_id = ?";
         jdbcTemplate.update(sql, film.getName(), film.getDescription(),
                 java.sql.Date.valueOf(film.getReleaseDate()), film.getDuration(),
                 film.getMpa().name(), film.getId());
@@ -50,7 +50,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Optional<Film> getById(int id) {
-        String sql = "SELECT * FROM films WHERE id = ?";
+        String sql = "SELECT * FROM films WHERE film_id = ?";
         return jdbcTemplate.query(sql, filmRowMapper, id)
                 .stream()
                 .findFirst();
