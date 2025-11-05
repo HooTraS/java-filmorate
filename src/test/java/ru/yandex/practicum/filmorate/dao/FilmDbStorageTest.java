@@ -30,7 +30,7 @@ class FilmDbStorageTest {
         film.setDescription("A mind-bending thriller");
         film.setReleaseDate(LocalDate.of(2010, 7, 16));
         film.setDuration(148);
-        film.setMpa(MpaRating.PG_13); // ✅ Устанавливаем рейтинг, чтобы не было NPE
+        film.setMpa(MpaRating.PG_13);
 
         Film savedFilm = filmStorage.add(film);
         Optional<Film> loadedFilm = filmStorage.getById(savedFilm.getId());
