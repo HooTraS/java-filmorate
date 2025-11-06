@@ -29,7 +29,7 @@ public class FilmDbStorage implements FilmStorage {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
-            ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
+            ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate())); // ✅ <-- исправлено
             ps.setInt(4, film.getDuration());
             ps.setString(5, film.getMpa() != null ? film.getMpa().name() : null);
             return ps;
@@ -39,7 +39,6 @@ public class FilmDbStorage implements FilmStorage {
             film.setId(keyHolder.getKey().intValue());
         }
 
-        // сохраняем жанры, если они есть
         if (film.getGenres() != null) {
             for (Genre genre : film.getGenres()) {
                 String genreSql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";

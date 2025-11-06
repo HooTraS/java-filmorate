@@ -19,15 +19,10 @@ public class FilmRowMapper implements RowMapper<Film> {
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getInt("duration"));
 
-        String mpaValue = rs.getString("mpa");
-        if (mpaValue != null) {
-            try {
-                film.setMpa(MpaRating.valueOf(mpaValue.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                film.setMpa(null);
-            }
-        } else {
-            film.setMpa(null);
+        // безопасное извлечение MPA (если NULL — пропускаем)
+        String mpaString = rs.getString("mpa");
+        if (mpaString != null) {
+            film.setMpa(MpaRating.valueOf(mpaString.toUpperCase()));
         }
 
         return film;
