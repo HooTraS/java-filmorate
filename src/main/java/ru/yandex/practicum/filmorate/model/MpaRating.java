@@ -15,8 +15,13 @@ public enum MpaRating {
         this.label = label;
     }
 
-    public int getId() { return id; }
-    public String getLabel() { return label; }
+    public int getId() {
+        return id;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 
     public static MpaRating fromId(int id) {
         for (MpaRating m : values()) {
