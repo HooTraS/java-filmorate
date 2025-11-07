@@ -17,6 +17,7 @@ import java.util.*;
 @Component
 @RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
+
     private final JdbcTemplate jdbcTemplate;
     private final FilmRowMapper filmRowMapper;
 
@@ -29,8 +30,10 @@ public class FilmDbStorage implements FilmStorage {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
-            ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate())); // ✅ <-- исправлено
+            // film.getReleaseDate() — должен быть LocalDate
+            ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
             ps.setInt(4, film.getDuration());
+            // сохраняем строковое имя рейтинга (или null)
             ps.setString(5, film.getMpa() != null ? film.getMpa().name() : null);
             return ps;
         }, keyHolder);
@@ -39,14 +42,10 @@ public class FilmDbStorage implements FilmStorage {
             film.setId(keyHolder.getKey().intValue());
         }
 
-        if (film.getGenres() != null) {
-            for (Genre genre : film.getGenres()) {
-                String genreSql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
-                jdbcTemplate.update(genreSql, film.getId(), genre.ordinal() + 1);
-            }
-        }
+        updateFilmGenres(film); // helper для записи в film_genres
 
-        return film;
+        // возвращаем актуальную запись, чтобы mpa/genres корректно заполнились RowMapper'ом
+        return getById(film.getId()).orElseThrow();
     }
 
     @Override
@@ -62,57 +61,53 @@ public class FilmDbStorage implements FilmStorage {
         );
 
         jdbcTemplate.update("DELETE FROM film_genres WHERE film_id = ?", film.getId());
+        updateFilmGenres(film);
 
+        return getById(film.getId()).orElseThrow();
+    }
+
+    private void updateFilmGenres(Film film) {
         if (film.getGenres() != null) {
+            String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
             for (Genre genre : film.getGenres()) {
-                String genreSql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
-                jdbcTemplate.update(genreSql, film.getId(), genre.ordinal() + 1);
+                jdbcTemplate.update(sql, film.getId(), genre.getId());
             }
         }
-
-        return film;
     }
 
     @Override
     public Optional<Film> getById(int filmId) {
         String sql = "SELECT * FROM films WHERE film_id = ?";
+
         Optional<Film> filmOptional = jdbcTemplate.query(sql, filmRowMapper, filmId)
                 .stream()
                 .findFirst();
 
-        filmOptional.ifPresent(film -> {
-            List<Genre> genres = jdbcTemplate.query(
-                    "SELECT g.name FROM FILM_GENRES fg " +
-                            "JOIN GENRES g ON fg.genre_id = g.genre_id " +
-                            "WHERE fg.film_id = ?",
-                    (rs, rowNum) -> Genre.valueOf(rs.getString("name").toUpperCase()),
-                    filmId
-            );
-
-            film.setGenres(new HashSet<>(genres));
-        });
+        filmOptional.ifPresent(film -> film.setGenres(getGenresByFilmId(filmId)));
 
         return filmOptional;
     }
 
-
-
     @Override
     public Collection<Film> getAll() {
         String sql = "SELECT * FROM films";
+
         List<Film> films = jdbcTemplate.query(sql, filmRowMapper);
 
-        // добавляем жанры каждому фильму
         for (Film film : films) {
-            film.setGenres((Set<Genre>) getGenresByFilmId(film.getId()));
+            film.setGenres(getGenresByFilmId(film.getId()));
         }
 
         return films;
     }
 
-    private List<Genre> getGenresByFilmId(int filmId) {
-        String sql = "SELECT genre_id FROM film_genres WHERE film_id = ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
-                Genre.values()[rs.getInt("genre_id") - 1], filmId);
+    private Set<Genre> getGenresByFilmId(int filmId) {
+        String sql = "SELECT g.genre_id, g.name FROM film_genres fg " +
+                "JOIN genres g ON fg.genre_id = g.genre_id " +
+                "WHERE fg.film_id = ?";
+
+        return new HashSet<>(jdbcTemplate.query(sql,
+                (rs, rowNum) -> Genre.fromId(rs.getInt("genre_id")),
+                filmId));
     }
 }
