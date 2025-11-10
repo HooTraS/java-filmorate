@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Component
@@ -41,8 +42,11 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User update(User user) {
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
-        jdbcTemplate.update(sql, user.getEmail(), user.getLogin(), user.getName(),
+        int updated = jdbcTemplate.update(sql, user.getEmail(), user.getLogin(), user.getName(),
                 java.sql.Date.valueOf(user.getBirthday()), user.getId());
+        if (updated == 0) {
+            throw new NoSuchElementException("Пользователь с id=" + user.getId() + " не найден");
+        }
         return user;
     }
 

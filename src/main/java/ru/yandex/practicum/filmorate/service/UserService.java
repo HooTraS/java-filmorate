@@ -50,22 +50,27 @@ public class UserService {
         User friend = getById(friendId);
 
         user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
+        friend.getFriends().putIfAbsent(userId, FriendshipStatus.UNCONFIRMED);
 
-        if (friend.getFriends().containsKey(userId)) {
+        if (friend.getFriends().get(friendId) == FriendshipStatus.UNCONFIRMED) {
             user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
             friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
-        } else {
-            friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
         }
 
-        // ⚠️ В будущем можно добавить сохранение связей в отдельную таблицу friends
+        // Сохраняем изменения в хранилище
+        userStorage.update(user);
+        userStorage.update(friend);
     }
 
     public void removeFriend(int userId, int friendId) {
         User user = getById(userId);
         User friend = getById(friendId);
+
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
+
+        userStorage.update(user);
+        userStorage.update(friend);
     }
 
     public Collection<User> getFriends(int userId) {
@@ -79,13 +84,8 @@ public class UserService {
         User user = getById(userId);
         User other = getById(otherId);
 
-        Set<Integer> userFriends = user.getFriends() == null
-                ? Collections.emptySet()
-                : new HashSet<>(user.getFriends().keySet());
-
-        Set<Integer> otherFriends = other.getFriends() == null
-                ? Collections.emptySet()
-                : new HashSet<>(other.getFriends().keySet());
+        Set<Integer> userFriends = new HashSet<>(user.getFriends().keySet());
+        Set<Integer> otherFriends = new HashSet<>(other.getFriends().keySet());
 
         userFriends.retainAll(otherFriends);
 

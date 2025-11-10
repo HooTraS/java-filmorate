@@ -9,14 +9,15 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class FilmService {
+
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final Map<Integer, Set<Integer>> likes = new HashMap<>();
 
     public FilmService(
             @Qualifier("filmDbStorage") FilmStorage filmStorage,
@@ -48,27 +49,29 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
-        getById(filmId);
+        Film film = getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        likes.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
+
+        film.getLikes().add(userId);
+        filmStorage.update(film); // обязательно, иначе пропадёт после перезапуска
     }
 
     public void removeLike(int filmId, int userId) {
-        getById(filmId);
+        Film film = getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        Set<Integer> filmLikes = likes.get(filmId);
-        if (filmLikes != null) {
-            filmLikes.remove(userId);
-        }
+
+        film.getLikes().remove(userId);
+        filmStorage.update(film);
     }
 
     public List<Film> getPopular(int count) {
         return filmStorage.getAll().stream()
                 .sorted((f1, f2) -> Integer.compare(
-                        likes.getOrDefault(f2.getId(), Collections.emptySet()).size(),
-                        likes.getOrDefault(f1.getId(), Collections.emptySet()).size()))
+                        f2.getLikes().size(),
+                        f1.getLikes().size()
+                ))
                 .limit(count)
                 .collect(Collectors.toList());
     }
@@ -80,7 +83,8 @@ public class FilmService {
         if (film.getDescription() != null && film.getDescription().length() > 200) {
             throw new ValidationException("Описание не может превышать 200 символов");
         }
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+        if (film.getReleaseDate() != null &&
+                film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
         if (film.getDuration() <= 0) {
