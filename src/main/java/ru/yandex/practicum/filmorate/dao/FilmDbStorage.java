@@ -30,10 +30,8 @@ public class FilmDbStorage implements FilmStorage {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
-            // film.getReleaseDate() — должен быть LocalDate
             ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
             ps.setInt(4, film.getDuration());
-            // сохраняем строковое имя рейтинга (или null)
             ps.setString(5, film.getMpa() != null ? film.getMpa().name() : null);
             return ps;
         }, keyHolder);
@@ -42,11 +40,11 @@ public class FilmDbStorage implements FilmStorage {
             film.setId(keyHolder.getKey().intValue());
         }
 
-        updateFilmGenres(film); // helper для записи в film_genres
+        updateFilmGenres(film);
 
-        // возвращаем актуальную запись, чтобы mpa/genres корректно заполнились RowMapper'ом
         return getById(film.getId()).orElseThrow();
     }
+
 
     @Override
     public Film update(Film film) {
