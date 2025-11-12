@@ -4,13 +4,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -46,52 +44,27 @@ public class UserService {
             throw new ValidationException("Нельзя добавить себя в друзья");
         }
 
-        User user = getById(userId);
-        User friend = getById(friendId);
+        getById(userId);
+        getById(friendId);
 
-        user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
-        friend.getFriends().putIfAbsent(userId, FriendshipStatus.UNCONFIRMED);
-
-        if (friend.getFriends().get(friendId) == FriendshipStatus.UNCONFIRMED) {
-            user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
-            friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
-        }
-
-        // Сохраняем изменения в хранилище
-        userStorage.update(user);
-        userStorage.update(friend);
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        User user = getById(userId);
-        User friend = getById(friendId);
-
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-
-        userStorage.update(user);
-        userStorage.update(friend);
+        getById(userId);
+        getById(friendId);
+        userStorage.removeFriend(userId, friendId);
     }
 
     public Collection<User> getFriends(int userId) {
-        User user = getById(userId);
-        return user.getFriends().keySet().stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        getById(userId);
+        return userStorage.getFriends(userId);
     }
 
     public Collection<User> getCommonFriends(int userId, int otherId) {
-        User user = getById(userId);
-        User other = getById(otherId);
-
-        Set<Integer> userFriends = new HashSet<>(user.getFriends().keySet());
-        Set<Integer> otherFriends = new HashSet<>(other.getFriends().keySet());
-
-        userFriends.retainAll(otherFriends);
-
-        return userFriends.stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        getById(userId);
+        getById(otherId);
+        return userStorage.getCommonFriends(userId, otherId);
     }
 
     private void validate(User user) {
