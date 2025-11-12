@@ -87,7 +87,9 @@ public class UserDbStorage implements UserStorage {
             reverseExists = jdbcTemplate.queryForObject(
                     "SELECT status FROM friends WHERE user_id = ? AND friend_id = ?",
                     Boolean.class, friendId, userId);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+
+        }
 
         if (reverseExists == null) reverseExists = false;
 
@@ -123,7 +125,9 @@ public class UserDbStorage implements UserStorage {
             if (rev != null && rev) {
                 jdbcTemplate.update("UPDATE friends SET status = ? WHERE user_id = ? AND friend_id = ?", false, friendId, userId);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+
+        }
     }
 
     @Override
