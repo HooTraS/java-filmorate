@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -8,15 +9,20 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FilmService {
+
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private static final LocalDate EARLIEST_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(
+            @Qualifier("filmDbStorage") FilmStorage filmStorage,
+            @Qualifier("userDbStorage") UserStorage userStorage
+    ) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
     }
@@ -48,6 +54,7 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
         film.getLikes().add(userId);
+        filmStorage.update(film); // обязательно, иначе пропадёт после перезапуска
     }
 
     public void removeLike(int filmId, int userId) {
@@ -56,23 +63,32 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
         film.getLikes().remove(userId);
+        filmStorage.update(film);
     }
 
     public List<Film> getPopular(int count) {
         return filmStorage.getAll().stream()
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .sorted((f1, f2) -> Integer.compare(
+                        f2.getLikes().size(),
+                        f1.getLikes().size()
+                ))
                 .limit(count)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private void validate(Film film) {
-        if (film.getName() == null || film.getName().isBlank())
+        if (film.getName() == null || film.getName().isBlank()) {
             throw new ValidationException("Название фильма не может быть пустым");
-        if (film.getDescription() != null && film.getDescription().length() > 200)
+        }
+        if (film.getDescription() != null && film.getDescription().length() > 200) {
             throw new ValidationException("Описание не может превышать 200 символов");
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(EARLIEST_RELEASE_DATE))
-            throw new ValidationException("Дата релиза не может быть раньше 28.12.1895");
-        if (film.getDuration() <= 0)
+        }
+        if (film.getReleaseDate() != null &&
+                film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        }
+        if (film.getDuration() <= 0) {
             throw new ValidationException("Продолжительность фильма должна быть положительной");
+        }
     }
 }
