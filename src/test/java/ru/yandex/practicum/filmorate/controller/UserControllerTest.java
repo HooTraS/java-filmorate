@@ -2,25 +2,27 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
+@Transactional
 class UserControllerTest {
 
+    @Autowired
     private UserController controller;
+
     private User user;
 
     @BeforeEach
     void setUp() {
-        UserService userService = new UserService(new InMemoryUserStorage());
-        controller = new UserController(userService);
-
         user = new User();
         user.setEmail("test@mail.com");
         user.setLogin("testuser");
@@ -31,7 +33,6 @@ class UserControllerTest {
     @Test
     void shouldAddValidUser() {
         User added = controller.addUser(user);
-        assertEquals(1, added.getId());
         assertEquals("Test User", added.getName());
     }
 

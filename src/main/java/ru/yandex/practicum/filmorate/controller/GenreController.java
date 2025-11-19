@@ -1,26 +1,26 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.service.GenreService;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 
 @RestController
 @RequestMapping("/genres")
+@RequiredArgsConstructor
 public class GenreController {
 
+    private final GenreService service;
+
     @GetMapping
-    public List<Genre> getAll() {
-        return Arrays.asList(Genre.values());
+    public Collection<Genre> getAll() {
+        return service.getAll();
     }
 
     @GetMapping("/{id}")
     public Genre getById(@PathVariable int id) {
-        Genre[] values = Genre.values();
-        if (id < 1 || id > values.length) {
-            throw new IllegalArgumentException("Жанр с id=" + id + " не найден");
-        }
-        return values[id - 1];
+        return service.getById(id);
     }
 }

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -8,15 +9,14 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
-    private final UserStorage userStorage;
 
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
+    @Qualifier("userDbStorage")
+    private final UserStorage userStorage;
 
     public User add(User user) {
         validate(user);
@@ -26,7 +26,7 @@ public class UserService {
     public User update(User user) {
         validate(user);
         userStorage.getById(user.getId())
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + user.getId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         return userStorage.update(user);
     }
 
@@ -36,7 +36,7 @@ public class UserService {
 
     public User getById(int id) {
         return userStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
     }
 
     public void addFriend(int userId, int friendId) {
@@ -53,6 +53,7 @@ public class UserService {
     public void removeFriend(int userId, int friendId) {
         getById(userId);
         getById(friendId);
+
         userStorage.removeFriend(userId, friendId);
     }
 
@@ -69,10 +70,10 @@ public class UserService {
 
     private void validate(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            throw new ValidationException("Email должен содержать '@'");
+            throw new ValidationException("Некорректный email");
         }
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым или содержать пробелы");
+            throw new ValidationException("Некорректный логин");
         }
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());

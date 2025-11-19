@@ -1,26 +1,26 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+import ru.yandex.practicum.filmorate.service.MpaRatingService;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 
 @RestController
 @RequestMapping("/mpa")
+@RequiredArgsConstructor
 public class MpaController {
 
+    private final MpaRatingService service;
+
     @GetMapping
-    public List<MpaRating> getAll() {
-        return Arrays.asList(MpaRating.values());
+    public Collection<MpaRating> getAll() {
+        return service.getAll();
     }
 
     @GetMapping("/{id}")
     public MpaRating getById(@PathVariable int id) {
-        MpaRating[] values = MpaRating.values();
-        if (id < 1 || id > values.length) {
-            throw new IllegalArgumentException("MPA с id=" + id + " не найден");
-        }
-        return values[id - 1];
+        return service.getById(id);
     }
 }

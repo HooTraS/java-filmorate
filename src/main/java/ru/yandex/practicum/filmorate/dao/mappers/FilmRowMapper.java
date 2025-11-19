@@ -10,6 +10,7 @@ import java.sql.SQLException;
 
 @Component
 public class FilmRowMapper implements RowMapper<Film> {
+
     @Override
     public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
         Film film = new Film();
@@ -19,12 +20,11 @@ public class FilmRowMapper implements RowMapper<Film> {
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getInt("duration"));
 
-        String mpaString = rs.getString("mpa");
-        if (mpaString != null) {
-            film.setMpa(MpaRating.valueOf(mpaString));
-        }
+        MpaRating mpa = new MpaRating();
+        mpa.setId(rs.getInt("mpa_id"));
+        mpa.setName(rs.getString("mpa_name"));
+        film.setMpa(mpa);
 
         return film;
     }
-
 }
