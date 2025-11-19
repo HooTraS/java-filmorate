@@ -17,13 +17,12 @@ public class GenreDbStorage {
     private final GenreRowMapper rowMapper;
 
     public Collection<Genre> getAll() {
-        return jdbcTemplate.query("SELECT * FROM genre ORDER BY genre_id", rowMapper);
+        return jdbcTemplate.query("SELECT * FROM GENRES ORDER BY genre_id", rowMapper);
     }
 
     public Optional<Genre> getById(int id) {
-        return jdbcTemplate.query("SELECT * FROM genre WHERE genre_id = ?", rowMapper, id)
+        return jdbcTemplate.query("SELECT * FROM GENRES WHERE genre_id = ?", rowMapper, id)
                 .stream()
                 .findFirst();
     }
 }
-

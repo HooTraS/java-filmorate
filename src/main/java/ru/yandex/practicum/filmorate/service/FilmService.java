@@ -54,7 +54,7 @@ public class FilmService {
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        String sql = "MERGE INTO likes (film_id, user_id) VALUES (?, ?)";
+        String sql = "MERGE INTO LIKES (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
     }
 
@@ -63,18 +63,17 @@ public class FilmService {
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        String sql = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
+        String sql = "DELETE FROM LIKES WHERE film_id = ? AND user_id = ?";
         jdbcTemplate.update(sql, filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
         String sql = """
-            SELECT f.*, m.mpa_id, m.name AS mpa_name,
-                   COUNT(l.user_id) AS likes_count
-            FROM films f
-            JOIN mpa m ON f.mpa_id = m.mpa_id
-            LEFT JOIN likes l ON f.film_id = l.film_id
-            GROUP BY f.film_id
+            SELECT f.*, m.mpa_id, m.name AS mpa_name, COUNT(l.user_id) AS likes_count
+            FROM FILMS f
+            LEFT JOIN LIKES l ON f.film_id = l.film_id
+            LEFT JOIN MPA_RATINGS m ON f.mpa_id = m.mpa_id
+            GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.mpa_id, m.name
             ORDER BY likes_count DESC
             LIMIT ?
             """;
