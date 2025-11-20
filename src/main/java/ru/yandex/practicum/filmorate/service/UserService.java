@@ -1,23 +1,22 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collection;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
-    private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
+    @Qualifier("userDbStorage")
+    private final UserStorage userStorage;
 
     public User add(User user) {
         validate(user);
@@ -27,7 +26,7 @@ public class UserService {
     public User update(User user) {
         validate(user);
         userStorage.getById(user.getId())
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + user.getId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         return userStorage.update(user);
     }
 
@@ -37,7 +36,7 @@ public class UserService {
 
     public User getById(int id) {
         return userStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
     }
 
     public void addFriend(int userId, int friendId) {
@@ -45,58 +44,36 @@ public class UserService {
             throw new ValidationException("Нельзя добавить себя в друзья");
         }
 
-        User user = getById(userId);
-        User friend = getById(friendId);
+        getById(userId);
+        getById(friendId);
 
-        user.getFriends().put(friendId, FriendshipStatus.UNCONFIRMED);
-
-        if (friend.getFriends().containsKey(userId)) {
-            user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
-            friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
-        } else {
-            friend.getFriends().put(userId, FriendshipStatus.UNCONFIRMED);
-        }
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        User user = getById(userId);
-        User friend = getById(friendId);
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
+        getById(userId);
+        getById(friendId);
+
+        userStorage.removeFriend(userId, friendId);
     }
 
     public Collection<User> getFriends(int userId) {
-        User user = getById(userId);
-        return user.getFriends().keySet().stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        getById(userId);
+        return userStorage.getFriends(userId);
     }
 
     public Collection<User> getCommonFriends(int userId, int otherId) {
-        User user = getById(userId);
-        User other = getById(otherId);
-
-        Set<Integer> userFriends = user.getFriends() == null
-                ? Collections.emptySet()
-                : new HashSet<>(user.getFriends().keySet());
-
-        Set<Integer> otherFriends = other.getFriends() == null
-                ? Collections.emptySet()
-                : new HashSet<>(other.getFriends().keySet());
-
-        userFriends.retainAll(otherFriends);
-
-        return userFriends.stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        getById(userId);
+        getById(otherId);
+        return userStorage.getCommonFriends(userId, otherId);
     }
 
     private void validate(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            throw new ValidationException("Email должен содержать '@'");
+            throw new ValidationException("Некорректный email");
         }
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым или содержать пробелы");
+            throw new ValidationException("Некорректный логин");
         }
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
