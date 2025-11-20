@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.dao.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -27,9 +28,20 @@ public class FilmService {
 
     private final JdbcTemplate jdbcTemplate;
     private final FilmRowMapper filmRowMapper;
+    private final MpaRatingService mpaRatingService;
+    private final GenreService genreService;
 
     public Film add(Film film) {
         validate(film);
+        if (film.getMpa() == null) {
+            throw new ValidationException("MPA рейтинг не может быть пустым");
+        }
+        mpaRatingService.getById(film.getMpa().getId());
+        if (film.getGenres() != null) {
+            for (Genre genre : film.getGenres()) {
+                genreService.getById(genre.getId());
+            }
+        }
         return filmStorage.add(film);
     }
 
@@ -37,6 +49,15 @@ public class FilmService {
         validate(film);
         filmStorage.getById(film.getId())
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден"));
+        if (film.getMpa() == null) {
+            throw new ValidationException("MPA рейтинг не может быть пустым");
+        }
+        mpaRatingService.getById(film.getMpa().getId());
+        if (film.getGenres() != null) {
+            for (Genre genre : film.getGenres()) {
+                genreService.getById(genre.getId());
+            }
+        }
         return filmStorage.update(film);
     }
 
@@ -53,7 +74,6 @@ public class FilmService {
         getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-
         String sql = "MERGE INTO LIKES (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
     }
@@ -62,14 +82,14 @@ public class FilmService {
         getById(filmId);
         userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-
         String sql = "DELETE FROM LIKES WHERE film_id = ? AND user_id = ?";
         jdbcTemplate.update(sql, filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
         String sql = """
-            SELECT f.*, m.mpa_id, m.name AS mpa_name, COUNT(l.user_id) AS likes_count
+            SELECT f.*, m.mpa_id, m.name AS mpa_name,
+                   COUNT(l.user_id) AS likes_count
             FROM FILMS f
             LEFT JOIN LIKES l ON f.film_id = l.film_id
             LEFT JOIN MPA_RATINGS m ON f.mpa_id = m.mpa_id
@@ -77,7 +97,6 @@ public class FilmService {
             ORDER BY likes_count DESC
             LIMIT ?
             """;
-
         return jdbcTemplate.query(sql, filmRowMapper, count);
     }
 
